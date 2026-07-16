@@ -18,17 +18,22 @@ class OrderService {
       });
 
       // 2. Insert into order_items table
-      final itemsToInsert = order.items.map((item) => {
-        'order_id': order.orderId,
-        'product_id': item.product.id,
-        'quantity': item.quantity,
-        'price_at_purchase': item.product.pricePerUnit,
-      }).toList();
+      final itemsToInsert = order.items
+          .map((item) => {
+                'order_id': order.orderId,
+                'product_id': item.product.id,
+                'quantity': item.quantity,
+                'price_at_purchase': item.product.pricePerUnit,
+              })
+          .toList();
 
       await _client.from('order_items').insert(itemsToInsert);
-      
+
       return true;
-    } catch (e) {
+    } catch (e, st) {
+      // Log the error so we can see the root cause in logs
+      print('OrderService.placeOrder error: $e');
+      print(st);
       return false;
     }
   }
@@ -42,7 +47,7 @@ class OrderService {
           .order('order_date', ascending: false);
 
       final List data = response as List;
-      
+
       return data.map((orderJson) {
         final List itemsJson = orderJson['order_items'] as List;
         final items = itemsJson.map((item) {
@@ -53,10 +58,12 @@ class OrderService {
             quantity: item['quantity'] as int,
           );
         }).toList();
-        
+
         return OrderModel.fromJson(orderJson, items);
       }).toList();
-    } catch (e) {
+    } catch (e, st) {
+      print('OrderService.fetchBuyerOrders error: $e');
+      print(st);
       return [];
     }
   }
@@ -65,8 +72,7 @@ class OrderService {
     try {
       await _client
           .from('orders')
-          .update({'status': status.name})
-          .eq('id', orderId);
+          .update({'status': status.name}).eq('id', orderId);
       return true;
     } catch (e) {
       return false;
